@@ -1,66 +1,111 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BeZ Translate</title>
-  <style>
-    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top left, #3b0764 0, transparent 35%), #09090b; color: #fafafa; }
-    main { max-width: 1100px; margin: 0 auto; padding: 56px 18px; }
-    h1 { font-size: clamp(38px, 7vw, 82px); line-height: .9; margin: 0 0 14px; letter-spacing: -0.07em; }
-    p { color: #cbd5e1; font-size: 18px; margin: 0 0 24px; }
-    .card { background: rgba(24,24,27,.78); border: 1px solid rgba(255,255,255,.11); border-radius: 26px; padding: 18px; box-shadow: 0 24px 80px rgba(0,0,0,.38); backdrop-filter: blur(18px); }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    textarea { min-height: 320px; resize: vertical; }
-    textarea, input, select { width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: rgba(0,0,0,.28); color: #fff; padding: 14px 16px; font: inherit; outline: none; }
-    textarea:focus, input:focus, select:focus { border-color: #a78bfa; }
-    .row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin: 14px 0; align-items: center; }
-    button { border: 0; border-radius: 18px; padding: 15px 22px; font: inherit; font-weight: 750; color: #0a0a0a; background: linear-gradient(135deg, #e9d5ff, #67e8f9); cursor: pointer; }
-    button:disabled { opacity: .55; cursor: wait; }
-    .hint { font-size: 13px; color: #94a3b8; margin-top: 12px; }
-    .err { color: #fca5a5; white-space: pre-wrap; margin-top: 12px; }
-    label { display: block; font-size: 12px; color: #a1a1aa; margin: 0 0 5px 3px; }
-    @media (max-width: 800px) { .grid, .row { grid-template-columns: 1fr; } main { padding-top: 28px; } }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Translate | bezrabotnyi.com</title>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #3b82f6; --border: #334155; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+        .container { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); width: 100%; max-width: 860px; border: 1px solid var(--border); }
+        h1 { margin-top: 0; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+        .lang-selector, .provider-selector { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #94a3b8; flex-wrap: wrap; }
+        select, input { background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-size: 14px; outline: none; }
+        input { min-width: 260px; }
+        textarea { width: 100%; height: 150px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 15px; font-size: 16px; resize: vertical; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        textarea:focus, select:focus, input:focus { border-color: var(--accent); }
+        .btn-translate { width: 100%; margin: 20px 0; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-translate:hover { background: #2563eb; }
+        .btn-translate:disabled { background: #475569; cursor: not-allowed; }
+        .detected-lang { font-size: 12px; color: #22c55e; min-height: 18px; }
+        .hint { color: #64748b; font-size: 12px; line-height: 1.45; margin-top: 12px; }
+        .error { color: #fca5a5; font-size: 13px; white-space: pre-wrap; min-height: 18px; margin-top: 10px; }
+        @media (max-width: 720px) { .container { padding: 20px; } .lang-selector, .provider-selector { align-items: stretch; } input, select { width: 100%; box-sizing: border-box; } }
+    </style>
 </head>
 <body>
-<main>
-  <h1>BeZ Translate</h1>
-  <p>Вставь любой текст. Язык оригинала определяется автоматически. Ключ хранится только в браузере.</p>
-  <section class="card">
-    <div class="row">
-      <div><label>Куда переводить</label><input id="target" value="en" placeholder="en, ru, cn, de..." /></div>
-      <div><label>Модель</label><input id="model" placeholder="openrouter/auto" /></div>
-      <div><label>Endpoint</label><input id="endpoint" placeholder="https://openrouter.ai/api/v1" /></div>
-      <button id="go">Перевести</button>
+<div class="container">
+    <h1>🌐 Auto Translate</h1>
+
+    <div class="provider-selector">
+        <span>Провайдер:
+            <select id="provider" onchange="syncProviderFields()">
+                <option value="google">Google free unofficial</option>
+                <option value="mymemory">MyMemory free</option>
+                <option value="libre">LibreTranslate endpoint</option>
+                <option value="openrouter">OpenRouter / LLM</option>
+            </select>
+        </span>
+        <span id="endpointWrap">Endpoint: <input id="endpoint" placeholder="auto"></span>
+        <span id="keyWrap">Key: <input id="apiKey" type="password" placeholder="optional / BYOK"></span>
     </div>
-    <div style="margin-bottom:14px"><label>OpenRouter/OpenAI API key</label><input id="key" type="password" placeholder="sk-or-..." /></div>
-    <div class="grid">
-      <textarea id="source" placeholder="Текст для перевода"></textarea>
-      <textarea id="result" placeholder="Перевод" readonly></textarea>
+
+    <div class="lang-selector">
+        <span id="detectedLang" class="detected-lang">Язык оригинала: автоопределение</span>
+        <span>Перевести на:
+            <select id="targetLang">
+                <option value="en">Английский</option>
+                <option value="ru">Русский</option>
+                <option value="zh-CN">Китайский</option>
+                <option value="es">Испанский</option>
+                <option value="de">Немецкий</option>
+                <option value="fr">Французский</option>
+                <option value="ja">Японский</option>
+                <option value="ko">Корейский</option>
+            </select>
+        </span>
     </div>
-    <div class="hint">CLI: <code>npx -y github:megamen32/translate "Привет" --to en</code> · docs: <code>translate --docs</code></div>
-    <div id="err" class="err"></div>
-  </section>
-</main>
+
+    <textarea id="sourceText" placeholder="Введите любой текст для перевода..."></textarea>
+    <button class="btn-translate" id="translateBtn" onclick="translateText()">Перевести</button>
+    <textarea id="resultText" placeholder="Здесь появится перевод..." readonly></textarea>
+    <div id="error" class="error"></div>
+    <div class="hint">Google — быстрый бесплатный неофициальный endpoint. MyMemory — официальный бесплатный API, но короткие сегменты и лимиты. LibreTranslate — лучше со своим endpoint. OpenRouter — самый качественный режим, нужен ключ.</div>
+</div>
 <script>
 const $ = id => document.getElementById(id);
 const saved = JSON.parse(localStorage.getItem('bez_translate') || '{}');
-for (const id of ['key','endpoint','model','target']) if (saved[id]) $(id).value = saved[id];
-fetch('/api/config').then(r=>r.json()).then(c=>{ if (!$('endpoint').value) $('endpoint').value = c.endpoint; if (!$('model').value) $('model').value = c.model; }).catch(()=>{});
-$('go').onclick = async () => {
-  $('err').textContent = ''; $('go').disabled = true; $('go').textContent = 'Перевожу…';
-  const settings = { key:$('key').value, endpoint:$('endpoint').value, model:$('model').value, target:$('target').value };
-  localStorage.setItem('bez_translate', JSON.stringify(settings));
-  try {
-    const r = await fetch('/api/translate', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ text:$('source').value, targetLang:$('target').value, apiKey:$('key').value, endpoint:$('endpoint').value, model:$('model').value }) });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || 'translation failed');
-    $('result').value = j.translated;
-  } catch (e) { $('err').textContent = e.message; }
-  finally { $('go').disabled = false; $('go').textContent = 'Перевести'; }
-};
+for (const id of ['provider', 'targetLang', 'endpoint', 'apiKey']) if (saved[id]) $(id).value = saved[id];
+fetch('/api/config').then(r => r.json()).then(c => { if (!saved.provider && c.provider) $('provider').value = c.provider; syncProviderFields(); }).catch(syncProviderFields);
+function syncProviderFields() {
+    const provider = $('provider').value;
+    $('endpointWrap').style.display = (provider === 'libre' || provider === 'openrouter') ? '' : 'none';
+    $('keyWrap').style.display = (provider === 'libre' || provider === 'openrouter') ? '' : 'none';
+    if (provider === 'libre') $('endpoint').placeholder = 'https://libretranslate.com';
+    if (provider === 'openrouter') $('endpoint').placeholder = 'https://openrouter.ai/api/v1';
+}
+async function translateText() {
+    const text = $('sourceText').value.trim();
+    const targetLang = $('targetLang').value;
+    const provider = $('provider').value;
+    const btn = $('translateBtn');
+    const resultField = $('resultText');
+    const detectedLangField = $('detectedLang');
+    const error = $('error');
+    if (!text) return alert('Введите текст!');
+    btn.disabled = true;
+    btn.innerText = 'Переводим...';
+    resultField.value = '';
+    error.textContent = '';
+    localStorage.setItem('bez_translate', JSON.stringify({ provider, targetLang, endpoint: $('endpoint').value, apiKey: $('apiKey').value }));
+    try {
+        const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ provider, text, targetLang, sourceLang: 'auto', endpoint: $('endpoint').value, apiKey: $('apiKey').value })
+        });
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.error || 'Ошибка перевода');
+        detectedLangField.innerText = `Определен язык: ${data.detectedLang || 'auto'} · ${data.provider}`;
+        resultField.value = data.translated;
+    } catch (e) {
+        error.textContent = e.message || 'Ошибка перевода. Проверьте соединение.';
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Перевести';
+    }
+}
+syncProviderFields();
 </script>
 </body>
 </html>

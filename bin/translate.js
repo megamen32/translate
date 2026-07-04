@@ -3,6 +3,7 @@ import 'dotenv/config';
 import fs from 'node:fs/promises';
 import { stdin as input } from 'node:process';
 import { translateText, translateGittranslate, DEFAULT_ENDPOINT, DEFAULT_MODEL } from '../src/translator.js';
+import { translateGoogleFree, translateMyMemoryFree, translateLibreFree } from '../src/freeProviders.js';
 
 function help() {
   console.log(`BeZ Translate
@@ -20,7 +21,14 @@ Docs from .gittranslate:
   README.md
   docs/**/*.md
 
+Providers:
+  google      free unofficial Google endpoint, default
+  mymemory    free official REST API
+  libre       LibreTranslate-compatible endpoint
+  openrouter  BYOK LLM quality mode
+
 Options:
+  --provider, -p <name> provider, default google
   --to, -t <lang>       target language for text mode
   --from <lang>         source language, default auto
   --docs                translate files listed in .gittranslate
@@ -42,6 +50,7 @@ function parse(argv) {
     else if (a === '--init' || a === 'init') opts.init = true;
     else if (a === '--dry-run') opts.dryRun = true;
     else if (a === '--no-overwrite') opts.overwrite = false;
+    else if (a === '--provider' || a === '-p') opts.provider = argv[++i];
     else if (a === '--to' || a === '-t') opts.to = argv[++i];
     else if (a === '--from') opts.from = argv[++i];
     else if (a === '--model') opts.model = argv[++i];
@@ -93,15 +102,17 @@ try {
   }
 
   if (!opts.to) throw new Error('Missing --to <lang>');
-  const translated = await translateText({
-    text,
-    targetLang: opts.to,
-    sourceLang: opts.from || 'auto',
-    apiKey: opts.key,
-    endpoint: opts.endpoint,
-    model: opts.model
-  });
-  console.log(translated);
+  const provider = String(opts.provider || process.env.TRANSLATE_PROVIDER || 'google').toLowerCase();
+  let result;
+  if (provider === 'google') result = await translateGoogleFree(text, opts.to, opts.from || 'auto');
+  else if (provider === 'mymemory') result = await translateMyMemoryFree(text, opts.to, opts.from || 'auto');
+  else if (provider === 'libre' || provider === 'libretranslate') result = await translateLibreFree(text, opts.to, opts.from || 'auto', opts.endpoint || process.env.LIBRETRANSLATE_ENDPOINT || 'https://libretranslate.com');
+  else {
+    const translated = await translateText({ text, targetLang: opts.to, sourceLang: opts.from || 'auto', apiKey: opts.key, endpoint: opts.endpoint, model: opts.model });
+    result = { translated, detectedLang: '', provider: 'openrouter' };
+  }
+  if (result.detectedLang) console.error(`detected: ${result.detectedLang}; provider: ${result.provider}`);
+  console.log(result.translated);
 } catch (error) {
   console.error(`translate: ${error.message}`);
   process.exit(1);
