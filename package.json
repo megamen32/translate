@@ -1,0 +1,26 @@
+{
+  "name": "@bezrabotnyi/translate",
+  "version": "0.1.0",
+  "description": "Tiny BYOK translator web app and .gittranslate document auto-translator.",
+  "type": "module",
+  "bin": {
+    "translate": "bin/translate.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "TRANSLATE_PORT=3097 node src/server.js",
+    "translate": "node bin/translate.js",
+    "test:smoke": "node bin/translate.js --help && node -e \"import('./src/translator.js').then(()=>console.log('ok'))\""
+  },
+  "keywords": ["translate", "translation", "openrouter", "byok", "docs", "gittranslate"],
+  "author": "Nikita Rozanov",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fast-glob": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
