@@ -88,6 +88,7 @@ try {
 
   if (shouldDocs) {
     const result = await translateGittranslate({
+      provider: opts.provider || process.env.TRANSLATE_PROVIDER || 'google',
       apiKey: opts.key,
       endpoint: opts.endpoint,
       model: opts.model,

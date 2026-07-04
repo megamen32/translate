@@ -37,6 +37,7 @@
             </select>
         </span>
         <span id="endpointWrap">Endpoint: <input id="endpoint" placeholder="auto"></span>
+        <span id="modelWrap">Model: <input id="model" placeholder="openrouter/auto"></span>
         <span id="keyWrap">Key: <input id="apiKey" type="password" placeholder="optional / BYOK"></span>
     </div>
 
@@ -65,14 +66,15 @@
 <script>
 const $ = id => document.getElementById(id);
 const saved = JSON.parse(localStorage.getItem('bez_translate') || '{}');
-for (const id of ['provider', 'targetLang', 'endpoint', 'apiKey']) if (saved[id]) $(id).value = saved[id];
+for (const id of ['provider', 'targetLang', 'endpoint', 'model', 'apiKey']) if (saved[id]) $(id).value = saved[id];
 fetch('/api/config').then(r => r.json()).then(c => { if (!saved.provider && c.provider) $('provider').value = c.provider; syncProviderFields(); }).catch(syncProviderFields);
 function syncProviderFields() {
     const provider = $('provider').value;
     $('endpointWrap').style.display = (provider === 'libre' || provider === 'openrouter') ? '' : 'none';
     $('keyWrap').style.display = (provider === 'libre' || provider === 'openrouter') ? '' : 'none';
+    $('modelWrap').style.display = provider === 'openrouter' ? '' : 'none';
     if (provider === 'libre') $('endpoint').placeholder = 'https://libretranslate.com';
-    if (provider === 'openrouter') $('endpoint').placeholder = 'https://openrouter.ai/api/v1';
+    if (provider === 'openrouter') { $('endpoint').placeholder = 'https://openrouter.ai/api/v1'; $('model').placeholder = 'openrouter/auto'; }
 }
 async function translateText() {
     const text = $('sourceText').value.trim();
@@ -87,12 +89,12 @@ async function translateText() {
     btn.innerText = 'Переводим...';
     resultField.value = '';
     error.textContent = '';
-    localStorage.setItem('bez_translate', JSON.stringify({ provider, targetLang, endpoint: $('endpoint').value, apiKey: $('apiKey').value }));
+    localStorage.setItem('bez_translate', JSON.stringify({ provider, targetLang, endpoint: $('endpoint').value, model: $('model').value, apiKey: $('apiKey').value }));
     try {
         const response = await fetch('/api/translate', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ provider, text, targetLang, sourceLang: 'auto', endpoint: $('endpoint').value, apiKey: $('apiKey').value })
+            body: JSON.stringify({ provider, text, targetLang, sourceLang: 'auto', endpoint: $('endpoint').value, model: $('model').value, apiKey: $('apiKey').value })
         });
         const data = await response.json();
         if (!data.ok) throw new Error(data.error || 'Ошибка перевода');

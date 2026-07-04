@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import fg from 'fast-glob';
+import { translateGoogleFree, translateMyMemoryFree, translateLibreFree } from './freeProviders.js';
 
 export const DEFAULT_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 export const DEFAULT_MODEL = 'openrouter/auto';
@@ -19,6 +20,13 @@ export function normalizeLang(lang) {
 export function displayLang(lang) {
   const normalized = normalizeLang(lang);
   return normalized === 'zh-CN' ? 'cn' : normalized;
+}
+
+function normalizeOpenAIEndpoint(endpoint) {
+  let url = String(endpoint || DEFAULT_ENDPOINT).trim();
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  if (url.endsWith('/chat/completions')) return url;
+  return url.replace(/\/$/, '') + '/chat/completions';
 }
 
 export function splitLangs(line) {
@@ -49,6 +57,7 @@ export function makePrompt(text, targetLang, sourceLang = 'auto') {
 }
 
 export async function translateText({
+  provider = 'openrouter',
   text,
   targetLang,
   sourceLang = 'auto',
@@ -60,9 +69,13 @@ export async function translateText({
   if (!String(text || '').trim()) throw new Error('Empty text');
   const target = normalizeLang(targetLang);
   if (!target) throw new Error('Target language is required');
+  const selected = String(provider || 'openrouter').toLowerCase();
+  if (selected === 'google') return (await translateGoogleFree(text, target, sourceLang)).translated;
+  if (selected === 'mymemory') return (await translateMyMemoryFree(text, target, sourceLang)).translated;
+  if (selected === 'libre' || selected === 'libretranslate') return (await translateLibreFree(text, target, sourceLang, endpoint || process.env.LIBRETRANSLATE_ENDPOINT || 'https://libretranslate.com')).translated;
   if (!apiKey) throw new Error('Missing API key: set OPENROUTER_API_KEY/OPENAI_API_KEY or pass apiKey');
 
-  const url = endpoint.endsWith('/chat/completions') ? endpoint : endpoint.replace(/\/$/, '') + '/chat/completions';
+  const url = normalizeOpenAIEndpoint(endpoint);
   const response = await fetchImpl(url, {
     method: 'POST',
     headers: {
@@ -131,6 +144,7 @@ export async function expandPatterns(patterns, cwd, languages) {
 
 export async function translateGittranslate({
   cwd = process.cwd(),
+  provider = 'openrouter',
   apiKey,
   endpoint,
   model,
@@ -154,7 +168,7 @@ export async function translateGittranslate({
       }
       onProgress({ file, lang, out });
       if (!dryRun) {
-        const translated = await translateText({ text: source, targetLang: lang, sourceLang, apiKey, endpoint, model });
+        const translated = await translateText({ provider, text: source, targetLang: lang, sourceLang, apiKey, endpoint, model });
         await fs.mkdir(path.dirname(absOut), { recursive: true });
         await fs.writeFile(absOut, translated + '\n');
       }
