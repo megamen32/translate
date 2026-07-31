@@ -1,41 +1,48 @@
 # BeZ Translate
 
-Мини-переводчик для текста и автоперевода документации из `.gittranslate`.
+Tiny BYOK translator for text and Markdown documentation driven by `.gittranslate`.
 
-## Web
+**[Русский](./README.ru.md)** · **[简体中文](./README.zh.md)**
+
+![BeZ Translate workflow](docs/assets/readme-hero.png)
+
+> Smoke-tested in this workspace with Node.js 22.22.3 and npm 10.9.8.
+
+## Quick start
+
+Requires Node.js 20+. Install the locked dependencies with one command:
 
 ```bash
-npm install
-TRANSLATE_PORT=3097 npm start
+npm ci
 ```
 
-Открой `translate.bezrabotnyi.com`, вставь текст, выбери язык, получи перевод. Язык оригинала определяется моделью автоматически.
+Set an [OpenRouter](https://openrouter.ai/) key, then start the local web app:
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+npm start
+```
+
+Open <http://127.0.0.1:3097> (or the configured `TRANSLATE_PORT`).
 
 ## CLI
 
-Без публикации в npm:
+Run the local CLI without a global install:
+
+```bash
+npm run translate -- "Привет" --to en
+echo "Hello" | npm run translate -- --to ru
+```
+
+For a published or GitHub package, use:
 
 ```bash
 npx -y github:megamen32/translate "Привет" --to en
 ```
 
-После публикации scoped-пакета:
+## Translate a documentation set
 
-```bash
-npx -y @bezrabotnyi/translate "Привет" --to en
-```
-
-Обычное использование:
-
-```bash
-export OPENROUTER_API_KEY=sk-or-...
-translate "Hello" --to ru
-echo "Hello" | translate --to cn
-```
-
-## `.gittranslate`
-
-Первая строка — языки назначения. `cn` автоматически превращается в Simplified Chinese `zh-CN`.
+Create `.gittranslate` with target languages and file globs:
 
 ```text
 ru en cn
@@ -43,20 +50,20 @@ README.md
 docs/**/*.md
 ```
 
-Запуск:
+Then run:
 
 ```bash
-translate --docs
+npm run translate -- --docs
 ```
 
-Для `README.md` будут созданы `README.ru.md`, `README.en.md`, `README.cn.md`. Язык оригинала определяется автоматически, сгенерированные языковые файлы повторно не переводятся.
+`cn` is normalized to Simplified Chinese (`zh-CN`). The source language is detected automatically.
 
-## Настройки
+## Configuration
 
-```bash
-OPENROUTER_API_KEY=sk-or-...
-TRANSLATE_MODEL=openrouter/auto
-TRANSLATE_ENDPOINT=https://openrouter.ai/api/v1
-```
+`OPENROUTER_API_KEY` is required for translation. Optional variables are
+`TRANSLATE_MODEL` and `TRANSLATE_ENDPOINT`; CLI flags `--key`, `--model`, and
+`--endpoint` override them.
 
-Также можно передать `--key`, `--model`, `--endpoint`.
+## License
+
+MIT
