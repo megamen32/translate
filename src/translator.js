@@ -56,6 +56,48 @@ export function makePrompt(text, targetLang, sourceLang = 'auto') {
   ];
 }
 
+function literalToken(index) {
+  let n = index;
+  let suffix = '';
+  do {
+    suffix = String.fromCharCode(65 + (n % 26)) + suffix;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return `__GPTADMIN_LITERAL_${suffix}__`;
+}
+
+export function protectMarkdown(markdown) {
+  const literals = [];
+  const placeholder = (literal) => {
+    const token = literalToken(literals.length);
+    literals.push({ token, literal });
+    return token;
+  };
+
+  let protectedMarkdown = markdown.replace(/^```[^\n]*\n[\s\S]*?^```$/gm, placeholder);
+  protectedMarkdown = protectedMarkdown.replace(/`[^`\n]+`/g, placeholder);
+  protectedMarkdown = protectedMarkdown.replace(/\]\(([^\n)]+)\)/g, (match) => placeholder(match));
+  return { protectedMarkdown, literals };
+}
+
+export function restoreMarkdown(markdown, literals) {
+  let restored = markdown;
+  for (const { token, literal } of literals) {
+    if (restored.includes(token)) {
+      restored = restored.replaceAll(token, literal);
+      continue;
+    }
+    if (restored.includes(literal)) {
+      continue;
+    }
+    throw new Error(`translator changed protected literal ${token}`);
+  }
+  // Google can insert whitespace before a protected link suffix. Markdown does
+  // not allow that space, so normalize it after the exact suffix is restored.
+  restored = restored.replace(/\]\s+\(/g, "](");
+  return restored;
+}
+
 export async function translateText({
   provider = 'openrouter',
   text,
@@ -160,6 +202,7 @@ export async function translateGittranslate({
   const results = [];
   for (const file of files) {
     const source = await fs.readFile(path.join(cwd, file), 'utf8');
+    const protectedSource = protectMarkdown(source);
     for (const lang of config.languages) {
       const out = targetPathFor(file, lang, outDir);
       const absOut = path.join(cwd, out);
@@ -168,9 +211,10 @@ export async function translateGittranslate({
       }
       onProgress({ file, lang, out });
       if (!dryRun) {
-        const translated = await translateText({ provider, text: source, targetLang: lang, sourceLang, apiKey, endpoint, model });
+        const translated = await translateText({ provider, text: protectedSource.protectedMarkdown, targetLang: lang, sourceLang, apiKey, endpoint, model });
+        const restored = restoreMarkdown(translated, protectedSource.literals);
         await fs.mkdir(path.dirname(absOut), { recursive: true });
-        await fs.writeFile(absOut, translated + '\n');
+        await fs.writeFile(absOut, restored + '\n');
       }
       results.push({ file, lang, out, skipped: false });
     }

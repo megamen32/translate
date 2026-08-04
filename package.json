@@ -10,6 +10,7 @@
     "start": "node src/server.js",
     "dev": "TRANSLATE_PORT=3097 node src/server.js",
     "translate": "node bin/translate.js",
+    "test": "node --test",
     "test:smoke": "node bin/translate.js --help && node -e \"import('./src/translator.js').then(()=>console.log('ok'))\""
   },
   "keywords": ["translate", "translation", "openrouter", "byok", "docs", "gittranslate"],
