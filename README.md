@@ -1,68 +1,60 @@
 # BeZ Translate
 
-Tiny BYOK translator for text and Markdown documentation driven by `.gittranslate`.
+**Translate text and Markdown docs from your terminal or a local web page—without handing your repository to a hosted app.**
 
-**[Русский](./README.ru.md)** · **[简体中文](./README.zh.md)**
+[Русский](./README.ru.md) · [简体中文](./README.zh.md) · [Usage details](docs/USAGE.md)
 
 ![BeZ Translate workflow](docs/assets/readme-hero.png)
 
-> Smoke-tested in this workspace with Node.js 22.22.3 and npm 10.9.8.
+BeZ Translate is a small BYOK-friendly translator driven by `.gittranslate`. It uses free provider adapters by default and can use an OpenAI-compatible endpoint such as OpenRouter when you provide a key.
 
-## Quick start
+## What it does
 
-Requires Node.js 20+. Install the locked dependencies with one command:
+- Translates one text from the CLI or local web UI.
+- Detects the source language or accepts `--from`.
+- Batch-translates Markdown files listed in `.gittranslate`.
+- Preserves Markdown code, links, paths, placeholders, and command-like literals.
+- Writes language-suffixed copies and supports dry runs and `--no-overwrite`.
+
+## Run from source
+
+This repository currently documents source setup, not a published npm install:
 
 ```bash
+git clone https://github.com/megamen32/translate.git
+cd translate
 npm ci
 ```
 
-Set an [OpenRouter](https://openrouter.ai/) key, then start the local web app:
+Start the local web app:
 
 ```bash
-export OPENROUTER_API_KEY=sk-or-...
 npm start
 ```
 
-Open <http://127.0.0.1:3097> (or the configured `TRANSLATE_PORT`).
-
-## CLI
-
-Run the local CLI without a global install:
+Open <http://127.0.0.1:3097>. For a one-off CLI translation:
 
 ```bash
 npm run translate -- "Привет" --to en
-echo "Hello" | npm run translate -- --to ru
 ```
 
-For a published or GitHub package, use:
-
-```bash
-npx -y github:megamen32/translate "Привет" --to en
-```
+The default CLI provider is a free Google endpoint adapter. For OpenRouter quality mode, set `OPENROUTER_API_KEY` and pass `--provider openrouter` (or configure `TRANSLATE_PROVIDER`). Provider behavior and configuration are documented in [Usage](docs/USAGE.md).
 
 ## Translate a documentation set
 
-Create `.gittranslate` with target languages and file globs:
-
-```text
-ru en cn
-README.md
-docs/**/*.md
-```
-
-Then run:
-
 ```bash
+npm run translate -- init
+npm run translate -- --docs --dry-run
 npm run translate -- --docs
 ```
 
-`cn` is normalized to Simplified Chinese (`zh-CN`). The source language is detected automatically.
+Edit `.gittranslate` before the final command to choose languages and Markdown globs.
 
-## Configuration
+## Verify
 
-`OPENROUTER_API_KEY` is required for translation. Optional variables are
-`TRANSLATE_MODEL` and `TRANSLATE_ENDPOINT`; CLI flags `--key`, `--model`, and
-`--endpoint` override them.
+```bash
+npm test
+```
 
 ## License
 
